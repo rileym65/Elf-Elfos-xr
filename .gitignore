@@ -1,5 +1,9 @@
+build.num
+build.inc
 xr.prg
 bios.inc
 date.inc
 kernel.inc
+*.lst
+temp.*
 
