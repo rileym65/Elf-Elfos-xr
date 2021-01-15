@@ -25,7 +25,11 @@ include    kernel.inc
 
            org     8000h
            lbr     0ff00h
+#ifdef BIOS
+           db      'xrb',0
+#else
            db      'xr',0
+#endif
            dw      9000h
            dw      endrom+7000h
            dw      2000h
@@ -59,7 +63,7 @@ start:     lda     ra                  ; move past any spaces
            ldn     ra                  ; get byte
            lbnz    start1              ; jump if argument given
            sep     scall               ; otherwise display usage message
-           dw      f_inmsg
+           dw      o_inmsg
            db      'Usage: xr filename',10,13,0
            sep     sret                ; and return to os
 
@@ -264,7 +268,11 @@ xrecvnak1: mov     rf,init            ; point to init byte
 
 xrecveot:  ldi     ack                ; send an ack
            sep     scall
+#ifdef BIOS
+           dw      f_tty
+#else
            dw      tty
+#endif
            mov     rf,xdone           ; need to mark EOT received
            ldi     1
            str     rf
@@ -281,7 +289,7 @@ xcloser:   mov     rf,baud            ; need to restore baud constant
            ldn     rf                 ; get it
            phi     re                 ; put it back
            sep     scall              ; display complete message
-           dw      f_inmsg
+           dw      o_inmsg
            db      10,13,'XMODEM receive complete',10,13,10,13,0
            sep     sret               ; return to caller
 
@@ -296,6 +304,11 @@ readblk:   push    rc                 ; save consumed registers
            phi     ra
            mov     rf,init            ; get byte to send
            ldn     rf                 ; retrieve it
+
+#ifdef BIOS
+           sep     scall              ; output the byte
+           dw      f_tty
+#else
            phi     r9                 ; Place for transmit
            mov     rf,h1              ; point to input buffer
            mov     rd,delay           ; address of bit delay routine
@@ -318,7 +331,14 @@ sendct:    sep     rd                  ; perform bit delay
            glo     r9
            bnz     sendlp
            SERREQ                      ; set stop bits
-readblk1:  ldi     8                  ; 8 bits to receive
+#endif
+
+#ifdef BIOS
+readblk1:  sep     scall               ; read byte from serial port
+           dw      f_read
+           phi     rc                  ; put character into rc.1
+#else
+readblk1:  ldi     8                   ; 8 bits to receive
            plo     rc
            ghi     re                  ; first delay is half bit size
            phi     rc
@@ -343,6 +363,8 @@ recvlp1:   phi     rc
            nop
            glo     rc                  ; check for zero
            bnz     recvlp              ; loop if not
+#endif
+
 recvdone:  ghi     rc                  ; get character
            str     rf                  ; store into buffer
            inc     rf                  ; increment buffer
@@ -367,6 +389,7 @@ recvret:   shr
            sep     sret                ; and return to caller
            sep     r3
 
+#ifndef BIOS
 delay:     ghi     re                  ; get baud constant
            shr                         ; remove echo flag
            plo     re                  ; put into counter
@@ -406,6 +429,7 @@ typect:    sep     rd                  ; perform bit delay
            pop     rd                  ; recover consumed registers
            pop     rf
            sep     sret
+#endif
 
 endrom:    equ     $
 
