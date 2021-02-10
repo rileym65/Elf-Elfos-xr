@@ -228,10 +228,10 @@ xrecvlp:   sep     scall              ; receive a byte
            ldn     rf                 ; retrieve it
            sm                         ; check against received block number
            lbnz    xrecvnak1          ; jump if bad black number
-           mov     rf,h1              ; point to header byte
+           mov     rf,txrx            ; point to first data byte
            ldi     0                  ; checksum starts at zero
            phi     rc
-           ldi     131                ; 131 bytes need to be added to checksum
+           ldi     128                ; 131 bytes need to be added to checksum
            plo     rc
 xrecv1:    lda     rf                 ; next byte from buffer
            str     r2                 ; store for add
@@ -310,7 +310,6 @@ readblk:   push    rc                 ; save consumed registers
            dw      f_tty
 #else
            phi     r9                 ; Place for transmit
-           mov     rf,h1              ; point to input buffer
            mov     rd,delay           ; address of bit delay routine
 type:      ldi     9                   ; 9 bits to send
            plo     r9
@@ -332,6 +331,8 @@ sendct:    sep     rd                  ; perform bit delay
            bnz     sendlp
            SERREQ                      ; set stop bits
 #endif
+
+           mov     rf,h1              ; point to input buffer
 
 #ifdef BIOS
 readblk1:  sep     scall               ; read byte from serial port
