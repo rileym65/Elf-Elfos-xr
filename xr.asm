@@ -25,7 +25,7 @@ include    kernel.inc
 
            org     8000h
            lbr     0ff00h
-#ifdef BIOS
+#ifdef XRB
            db      'xrb',0
 #else
            db      'xr',0
@@ -63,7 +63,7 @@ start:     lda     ra                  ; move past any spaces
            ldn     ra                  ; get byte
            lbnz    start1              ; jump if argument given
            sep     scall               ; otherwise display usage message
-           dw      o_inmsg
+           dw      f_inmsg
            db      'Usage: xr filename',10,13,0
            sep     sret                ; and return to os
 
@@ -268,7 +268,7 @@ xrecvnak1: mov     rf,init            ; point to init byte
 
 xrecveot:  ldi     ack                ; send an ack
            sep     scall
-#ifdef BIOS
+#ifdef XRB
            dw      f_tty
 #else
            dw      tty
@@ -289,7 +289,7 @@ xcloser:   mov     rf,baud            ; need to restore baud constant
            ldn     rf                 ; get it
            phi     re                 ; put it back
            sep     scall              ; display complete message
-           dw      o_inmsg
+           dw      f_inmsg
            db      10,13,'XMODEM receive complete',10,13,10,13,0
            sep     sret               ; return to caller
 
@@ -305,7 +305,7 @@ readblk:   push    rc                 ; save consumed registers
            mov     rf,init            ; get byte to send
            ldn     rf                 ; retrieve it
 
-#ifdef BIOS
+#ifdef XRB
            sep     scall              ; output the byte
            dw      f_tty
 #else
@@ -334,7 +334,7 @@ sendct:    sep     rd                  ; perform bit delay
 
            mov     rf,h1              ; point to input buffer
 
-#ifdef BIOS
+#ifdef XRB
 readblk1:  sep     scall               ; read byte from serial port
            dw      f_read
            phi     rc                  ; put character into rc.1
@@ -390,7 +390,7 @@ recvret:   shr
            sep     sret                ; and return to caller
            sep     r3
 
-#ifndef BIOS
+#ifndef XRB
 delay:     ghi     re                  ; get baud constant
            shr                         ; remove echo flag
            plo     re                  ; put into counter
