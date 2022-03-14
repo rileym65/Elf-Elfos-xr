@@ -16,6 +16,14 @@ bios: $(PROJECT).asm bios.inc
 	rm $(PROJECT).prg
 	mv x.prg $(PROJECT).prg
 
+uart: $(PROJECT).asm bios.inc
+	../../dateextended.pl > date.inc
+	../../build.pl > build.inc
+	rcasm -l -v -x -d 1802 -DXRU $(PROJECT) 2>&1 | tee $(PROJECT).lst
+	cat $(PROJECT).prg | sed -f adjust.sed > x.prg
+	rm $(PROJECT).prg
+	mv x.prg $(PROJECT).prg
+
 hex: $(PROJECT).prg
 	cat $(PROJECT).prg | ../../tointel.pl > $(PROJECT).hex
 

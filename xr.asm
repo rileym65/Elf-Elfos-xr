@@ -28,7 +28,11 @@ include    kernel.inc
 #ifdef XRB
            db      'xrb',0
 #else
+#ifdef XRU
+           db      'xru',0
+#else
            db      'xr',0
+#endif
 #endif
            dw      9000h
            dw      endrom+7000h
@@ -63,7 +67,7 @@ start:     lda     ra                  ; move past any spaces
            ldn     ra                  ; get byte
            lbnz    start1              ; jump if argument given
            sep     scall               ; otherwise display usage message
-           dw      f_inmsg
+           dw      o_inmsg
            db      'Usage: xr filename',10,13,0
            sep     sret                ; and return to os
 
@@ -271,7 +275,11 @@ xrecveot:  ldi     ack                ; send an ack
 #ifdef XRB
            dw      f_tty
 #else
+#ifdef XRU
+           dw      f_utype
+#else
            dw      tty
+#endif
 #endif
            mov     rf,xdone           ; need to mark EOT received
            ldi     1
@@ -289,7 +297,7 @@ xcloser:   mov     rf,baud            ; need to restore baud constant
            ldn     rf                 ; get it
            phi     re                 ; put it back
            sep     scall              ; display complete message
-           dw      f_inmsg
+           dw      o_inmsg
            db      10,13,'XMODEM receive complete',10,13,10,13,0
            sep     sret               ; return to caller
 
@@ -308,6 +316,10 @@ readblk:   push    rc                 ; save consumed registers
 #ifdef XRB
            sep     scall              ; output the byte
            dw      f_tty
+#else
+#ifdef XRU
+           sep     scall              ; output the byte
+           dw      f_utype
 #else
            phi     r9                 ; Place for transmit
            mov     rd,delay           ; address of bit delay routine
@@ -331,12 +343,18 @@ sendct:    sep     rd                  ; perform bit delay
            bnz     sendlp
            SERREQ                      ; set stop bits
 #endif
+#endif
 
            mov     rf,h1              ; point to input buffer
 
 #ifdef XRB
 readblk1:  sep     scall               ; read byte from serial port
            dw      f_read
+           phi     rc                  ; put character into rc.1
+#else
+#ifdef XRU
+readblk1:  sep     scall               ; read byte from serial port
+           dw      f_uread
            phi     rc                  ; put character into rc.1
 #else
 readblk1:  ldi     8                   ; 8 bits to receive
@@ -365,6 +383,7 @@ recvlp1:   phi     rc
            glo     rc                  ; check for zero
            bnz     recvlp              ; loop if not
 #endif
+#endif
 
 recvdone:  ghi     rc                  ; get character
            str     rf                  ; store into buffer
@@ -391,6 +410,7 @@ recvret:   shr
            sep     r3
 
 #ifndef XRB
+#ifndef XRU
 delay:     ghi     re                  ; get baud constant
            shr                         ; remove echo flag
            plo     re                  ; put into counter
@@ -430,6 +450,7 @@ typect:    sep     rd                  ; perform bit delay
            pop     rd                  ; recover consumed registers
            pop     rf
            sep     sret
+#endif
 #endif
 
 endrom:    equ     $
